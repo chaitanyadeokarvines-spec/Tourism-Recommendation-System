@@ -1,0 +1,144 @@
+import pandas as pd
+
+# ==========================================
+# 1. DATABASE CREATION (Mock Data for Mumbai)
+# ==========================================
+
+# Tourist Destinations Data
+destinations_data = [
+    {"Name": "Gateway of India", "Location": "South Mumbai", "Category": "Historical", "Age_Group": "All", "Entry_Fee": "Free"},
+    {"Name": "Marine Drive", "Location": "South Mumbai", "Category": "Relaxation", "Age_Group": "All", "Entry_Fee": "Free"},
+    {"Name": "Colaba Causeway", "Location": "South Mumbai", "Category": "Shopping", "Age_Group": "Young Adults/Adults", "Entry_Fee": "Free"},
+    {"Name": "Chhatrapati Shivaji Maharaj Vastu Sangrahalaya", "Location": "South Mumbai", "Category": "Museum", "Age_Group": "School/Adults", "Entry_Fee": "Paid"},
+    {"Name": "Hanging Gardens", "Location": "South Mumbai", "Category": "Nature", "Age_Group": "Kids/Seniors", "Entry_Fee": "Free"},
+    {"Name": "Siddhivinayak Temple", "Location": "South Central", "Category": "Religious", "Age_Group": "All", "Entry_Fee": "Free"},
+    {"Name": "Bandra-Worli Sea Link", "Location": "Bandra", "Category": "Sightseeing", "Age_Group": "All", "Entry_Fee": "Toll"},
+    {"Name": "Bandstand Promenade", "Location": "Bandra", "Category": "Relaxation", "Age_Group": "Couples/Young Adults", "Entry_Fee": "Free"},
+    {"Name": "Juhu Beach", "Location": "Juhu", "Category": "Beach", "Age_Group": "Kids/Families", "Entry_Fee": "Free"},
+    {"Name": "Prithvi Theatre", "Location": "Juhu", "Category": "Culture", "Age_Group": "Adults", "Entry_Fee": "Paid"},
+    {"Name": "Sanjay Gandhi National Park", "Location": "Borivali", "Category": "Nature/Adventure", "Age_Group": "Active/Families", "Entry_Fee": "Paid"},
+    {"Name": "EsselWorld", "Location": "Gorai", "Category": "Adventure/Theme Park", "Age_Group": "Kids/Teens", "Entry_Fee": "Paid"},
+    {"Name": "Film City", "Location": "Goregaon", "Category": "Entertainment", "Age_Group": "All", "Entry_Fee": "Paid"},
+]
+
+# Hotels Data
+hotels_data = [
+    {"Name": "The Taj Mahal Palace", "Location": "South Mumbai", "Tier": "Luxury", "Price_Range": "High"},
+    {"Name": "Trident Nariman Point", "Location": "South Mumbai", "Tier": "Luxury", "Price_Range": "High"},
+    {"Name": "Hotel Marine Plaza", "Location": "South Mumbai", "Tier": "Mid-Range", "Price_Range": "Medium"},
+    {"Name": "Sea Green Hotel", "Location": "South Mumbai", "Tier": "Budget", "Price_Range": "Low"},
+    {"Name": "Taj Lands End", "Location": "Bandra", "Tier": "Luxury", "Price_Range": "High"},
+    {"Name": "Grand Residency Hotel", "Location": "Bandra", "Tier": "Mid-Range", "Price_Range": "Medium"},
+    {"Name": "Lucky Hotel", "Location": "Bandra", "Tier": "Budget", "Price_Range": "Low"},
+    {"Name": "JW Marriott", "Location": "Juhu", "Tier": "Luxury", "Price_Range": "High"},
+    {"Name": "Hotel Bawa Continental", "Location": "Juhu", "Tier": "Mid-Range", "Price_Range": "Medium"},
+    {"Name": "The Resort", "Location": "Borivali", "Tier": "Luxury", "Price_Range": "High"},
+]
+
+# Convert to DataFrames
+df_destinations = pd.DataFrame(destinations_data)
+df_hotels = pd.DataFrame(hotels_data)
+
+# ==========================================
+# 2. RECOMMENDATION ENGINE
+# ==========================================
+
+def get_recommendations(location_pref, hotel_budget, age_group):
+    print(f"\n--- GENERATING RECOMMENDATIONS FOR: {location_pref} | {hotel_budget} Hotel | Age: {age_group} ---")
+    
+    # --- Filter Destinations ---
+    # We filter primarily by location. 
+    # For age, we do a simple keyword match or default to 'All' spots if no specific match found.
+    
+    # Filter 1: Location
+    dest_filter = df_destinations[df_destinations['Location'].str.contains(location_pref, case=False, na=False)]
+    
+    # Filter 2: Age Group (Simple logic: Show places marked 'All' OR specific age matches)
+    # Mapping user input to keywords in dataset
+    age_keywords = []
+    if "Kid" in age_group or "Child" in age_group:
+        age_keywords = ["Kids", "All", "Families"]
+    elif "Teen" in age_group:
+        age_keywords = ["Teens", "All", "Active"]
+    elif "Senior" in age_group:
+        age_keywords = ["Seniors", "All", "Religious", "Relaxation"]
+    else: # Adults/General
+        age_keywords = ["Adults", "All", "Young Adults", "Couples"]
+
+    # Apply Age Filter
+    # Example: Returns true if any keyword from age_keywords is present in the 'Age_Group' column
+    dest_filter = dest_filter[dest_filter['Age_Group'].apply(lambda x: any(k in x for k in age_keywords))]
+
+    # --- Filter Hotels ---
+    hotel_filter = df_hotels[
+        (df_hotels['Location'].str.contains(location_pref, case=False, na=False)) & 
+        (df_hotels['Tier'].str.contains(hotel_budget, case=False, na=False))
+    ]
+
+    return dest_filter, hotel_filter
+
+# ==========================================
+# 3. USER INTERFACE (CLI)
+# ==========================================
+
+def start_system():
+    print("=============================================")
+    print("   MUMBAI TOURISM RECOMMENDATION SYSTEM")
+    print("=============================================")
+    
+    # 1. Select Location
+    print("\nSelect Preferred Location:")
+    print("1. South Mumbai (Heritage, Sea, Museums)")
+    print("2. Bandra (Suburbs, Promenades, Nightlife)")
+    print("3. Juhu (Beach, Theatre)")
+    print("4. Borivali/Gorai (Nature, Parks)")
+    loc_choice = input("Enter Choice (1-4): ")
+    
+    location_map = {"1": "South Mumbai", "2": "Bandra", "3": "Juhu", "4": "Borivali"}
+    location = location_map.get(loc_choice, "South Mumbai") # Default to South Mumbai
+
+    # 2. Select Hotel Budget
+    print("\nSelect Hotel Budget/Tier:")
+    print("1. Luxury (High End)")
+    print("2. Mid-Range (Comfort)")
+    print("3. Budget (Economy)")
+    budget_choice = input("Enter Choice (1-3): ")
+
+    budget_map = {"1": "Luxury", "2": "Mid-Range", "3": "Budget"}
+    budget = budget_map.get(budget_choice, "Mid-Range")
+
+    # 3. Select Age Group
+    print("\nSelect Primary Age Group:")
+    print("1. Kids / Families")
+    print("2. Teenagers / Students")
+    print("3. Adults / Couples")
+    print("4. Seniors")
+    age_choice = input("Enter Choice (1-4): ")
+
+    age_map = {"1": "Kids", "2": "Teens", "3": "Adults", "4": "Seniors"}
+    age = age_map.get(age_choice, "Adults")
+
+    # Get Results
+    reco_dest, reco_hotels = get_recommendations(location, budget, age)
+
+    # Display Results
+    print("\n" + "="*40)
+    print(f"TOP PLACES TO VISIT IN {location.upper()}")
+    print("="*40)
+    if not reco_dest.empty:
+        print(reco_dest[['Name', 'Category', 'Entry_Fee']].to_string(index=False))
+    else:
+        print("No specific tourist spots found for this combination.")
+
+    print("\n" + "="*40)
+    print(f"RECOMMENDED {budget.upper()} HOTELS")
+    print("="*40)
+    if not reco_hotels.empty:
+        print(reco_hotels[['Name', 'Price_Range']].to_string(index=False))
+    else:
+        print(f"No {budget} hotels listed in this area. Try searching for a nearby location.")
+    print("\nEnjoy your trip to Mumbai!")
+
+# Run the system
+if __name__ == "__main__":
+    start_system()
